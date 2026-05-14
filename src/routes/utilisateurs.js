@@ -4,9 +4,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer'); 
 const dns = require('dns').promises; 
-const multer = require('multer');
 const path = require('path');
-const fs = require('fs'); // Indispensable pour gérer les dossiers
+
+// NOUVEAUX MODULES POUR CLOUDINARY
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
 const verifierToken = require('../middlewares/authMiddleware');
 const Utilisateur = require('../models/Utilisateur');
 
@@ -33,26 +37,22 @@ async function verifierDomaineEmail(email) {
 }
 
 // ==========================================
-// 💡 CONFIGURATION MULTER POUR L'AVATAR (CORRIGÉE)
+// 💡 CONFIGURATION CLOUDINARY POUR L'AVATAR
 // ==========================================
-// Pointe exactement vers votre dossier "src/uploads"
-const dossierUploads = path.join(__dirname, '../uploads');
-
-// Crée le dossier s'il n'existe pas
-if (!fs.existsSync(dossierUploads)) {
-    fs.mkdirSync(dossierUploads, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, dossierUploads); // Utilisation du chemin absolu
-    },
-    filename: function (req, file, cb) {
-        // Utilisation de Date.now() pour éviter les erreurs d'ID introuvable
-        const nomUnique = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, 'avatar-' + nomUnique + path.extname(file.originalname));
-    }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'mybudget_avatars', // Le dossier qui sera créé sur votre compte Cloudinary
+    allowedFormats: ['jpg', 'png', 'jpeg']
+  },
+});
+
 const upload = multer({ storage: storage });
 
 // ==========================================
@@ -63,17 +63,18 @@ router.put('/profil', verifierToken, updateProfilUtilisateur);
 router.delete('/me', verifierToken, supprimerCompte);
 router.post('/support', verifierToken, envoyerMessageSupport);
 
-// NOUVELLE ROUTE : UPLOAD AVATAR
+// NOUVELLE ROUTE : UPLOAD AVATAR (Mise à jour pour Cloudinary)
 router.post('/avatar', verifierToken, upload.single('avatar'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: "Aucune image fournie." });
         }
         
-        const avatarUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+        // Miracle de Cloudinary : req.file.path contient maintenant l'URL publique de l'image !
+        const avatarUrl = req.file.path;
         
         await Utilisateur.findByIdAndUpdate(req.utilisateur.id, { avatar: avatarUrl });
-        res.status(200).json({ message: "Avatar mis à jour", avatarUrl: avatarUrl });
+        res.status(200).json({ message: "Avatar mis à jour avec succès", avatarUrl: avatarUrl });
     } catch (erreur) {
         console.error("🔴 ERREUR D'UPLOAD AVATAR :", erreur);
         res.status(500).json({ message: "Erreur serveur lors de l'upload.", detail: erreur.message });
