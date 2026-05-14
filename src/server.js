@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 // configuration des middlewares
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: 'https://mybudget-frontend-theta.vercel.app',
     credentials: true
 }));
 app.use(express.json());
