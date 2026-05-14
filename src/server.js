@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 // configuration des middlewares
 app.use(cors({
-    origin: 'https://Adawn.vercel.app',
+    origin: 'https://adawn.vercel.app',
     credentials: true
 }));
 app.use(express.json());
