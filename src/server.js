@@ -43,3 +43,4 @@ app.get('/api/test', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Serveur demarre sur le port ${PORT}`);
 });
+module.exports = app;
