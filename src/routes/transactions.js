@@ -3,8 +3,59 @@ const router = express.Router();
 const Transaction = require('../models/Transaction');
 const verifierToken = require('../middlewares/authMiddleware');
 
+// 1. Import et initialisation de Gemini
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 // middleware de protection
 router.use(verifierToken);
+
+// --- NOUVELLE ROUTE IA : ANALYSE VOCALE ---
+// Il est important de la mettre AVANT la route POST '/' pour éviter les conflits
+// --- NOUVELLE ROUTE IA : ANALYSE VOCALE ---
+router.post('/analyze-voice', async (req, res) => {
+  try {
+    const { texte, categoriesDisponibles } = req.body;
+
+    const prompt = `
+    Tu es un assistant financier d'une application de gestion de budget. 
+    L'utilisateur a dicté ceci vocalement : "${texte}".
+    Extrais les informations pour préparer une transaction.
+    
+    Voici la liste des catégories disponibles avec leurs IDs (choisis le bon 'categorieId') :
+    ${JSON.stringify(categoriesDisponibles)}
+
+    Règles strictes :
+    - 'type' doit être "depense" ou "revenu". (Si on parle d'achat, c'est une depense. Si on parle de salaire, c'est un revenu).
+    - 'montant' doit être un nombre exact supérieur à 0. S'il n'y a pas de montant clair dans la phrase, mets 1 par défaut.
+    - 'titre' doit être un résumé court (ex: "Déjeuner restaurant", "Plein d'essence").
+    - 'date' doit être au format YYYY-MM-DD. Aujourd'hui, nous sommes le ${new Date().toISOString().split('T')[0]}.
+    `;
+
+    // 💡 LA CORRECTION EST ICI : On utilise la toute dernière version de Gemini
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash", 
+        generationConfig: {
+            responseMimeType: "application/json", 
+        }
+    });
+
+    const result = await model.generateContent(prompt);
+    let responseText = result.response.text();
+    
+    // Nettoyage de sécurité au cas où l'IA ajoute des balises Markdown
+    responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    const data = JSON.parse(responseText);
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Erreur Gemini:", err);
+    res.status(500).json({ message: "Erreur d'analyse IA", detail: err.message });
+  }
+});
+
+// --- ROUTES CLASSIQUES ---
 
 // creer une transaction
 router.post('/', async (req, res) => {
