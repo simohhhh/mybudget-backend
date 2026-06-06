@@ -16,6 +16,10 @@ const categorieSchema = new mongoose.Schema({
     type: String, 
     default: 'folder' 
   },
+  budgetMax: { // 👈 NOUVEAU CHAMP AJOUTÉ ICI
+    type: Number, 
+    default: 0 
+  },
   utilisateur: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Utilisateur', 
