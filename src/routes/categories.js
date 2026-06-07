@@ -9,9 +9,13 @@ router.use(verifierToken);
 // ajouter une categorie
 router.post('/', async (req, res) => {
   try {
-    const { nom, couleur, icone } = req.body;
+    // 💡 CORRECTION : On récupère maintenant le budgetMax
+    const { nom, couleur, icone, budgetMax } = req.body;
     const nouvelleCategorie = new Categorie({
-      nom, couleur, icone,
+      nom, 
+      couleur, 
+      icone, 
+      budgetMax: budgetMax || 0, // 👈 On le sauvegarde ici (0 par défaut)
       utilisateur: req.utilisateur.id 
     });
 
@@ -36,10 +40,11 @@ router.get('/', async (req, res) => {
 // modifier une categorie
 router.put('/:id', async (req, res) => {
     try {
-        const { nom, couleur, icone } = req.body;
+        // 💡 CORRECTION : On le met à jour ici aussi
+        const { nom, couleur, icone, budgetMax } = req.body;
         const categorieMiseAJour = await Categorie.findOneAndUpdate(
             { _id: req.params.id, utilisateur: req.utilisateur.id }, 
-            { nom, couleur, icone }, 
+            { nom, couleur, icone, budgetMax: budgetMax || 0 }, // 👈 Ajouté ici
             { new: true, runValidators: true }
         );
 
