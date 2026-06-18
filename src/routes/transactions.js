@@ -54,7 +54,53 @@ router.post('/analyze-voice', async (req, res) => {
     res.status(500).json({ message: "Erreur d'analyse IA", detail: err.message });
   }
 });
+// --- NOUVELLE ROUTE IA : ANALYSE TICKET DE CAISSE (VISION) ---
+router.post('/scan-receipt', async (req, res) => {
+  try {
+    const { imageBase64, categoriesDisponibles } = req.body;
 
+    const prompt = `
+    Tu es un assistant financier d'une application de gestion de budget. 
+    Analyse ce ticket de caisse.
+    
+    Voici la liste des catégories disponibles avec leurs IDs (choisis le bon 'categorieId') :
+    ${JSON.stringify(categoriesDisponibles)}
+
+    Règles strictes :
+    - 'type' doit être "depense".
+    - 'montant' doit être le montant total à payer extrait du ticket (un nombre exact, sans devise, utilise un point pour les décimales).
+    - 'titre' doit être le nom du magasin ou un résumé très court du ticket (ex: "Bim", "Café").
+    - 'date' doit être au format YYYY-MM-DD. Si tu vois une date sur le ticket mets-la, sinon utilise ${new Date().toISOString().split('T')[0]}.
+    `;
+
+    // Utilisation de Gemini 2.5 Flash qui lit parfaitement les images
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash", 
+        generationConfig: {
+            responseMimeType: "application/json", 
+        }
+    });
+
+    const imagePart = {
+      inlineData: {
+        data: imageBase64,
+        mimeType: "image/jpeg" 
+      }
+    };
+
+    const result = await model.generateContent([prompt, imagePart]);
+    let responseText = result.response.text();
+    
+    // Nettoyage de sécurité
+    responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const data = JSON.parse(responseText);
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error("Erreur Gemini Vision:", err);
+    res.status(500).json({ message: "Erreur de lecture du ticket", detail: err.message });
+  }
+});
 // --- ROUTES CLASSIQUES ---
 
 // creer une transaction
