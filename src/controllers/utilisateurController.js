@@ -116,7 +116,7 @@ const motDePasseOublie = async (req, res) => {
                     <h2 style="color: #2563eb;">Réinitialisation</h2>
                     <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
                     <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-top: 20px;">
-                        Réinitialiser mon mot de passe
+                        Réinitialiser votre mot de passe
                     </a>
                 </div>
             `
